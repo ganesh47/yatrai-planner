@@ -1,7 +1,11 @@
+import AuthenticationServices
 import SwiftUI
 
 struct TripEditorView: View {
     @State private var trip: TripInput = .sample
+    @StateObject private var authManager = AppleAuthManager()
+    @State private var draftItinerary: Itinerary?
+    @State private var isGenerating = false
 
     var body: some View {
         NavigationStack {
@@ -136,13 +140,61 @@ struct TripEditorView: View {
 
                 Section("Account") {
                     Toggle("Pro features enabled", isOn: $trip.isProUser)
+                    if !isUITestMode {
+                        SignInWithAppleButton(.signIn) { request in
+                            request.requestedScopes = [.fullName, .email]
+                        } onCompletion: { _ in
+                            Task {
+                                try? await authManager.signIn()
+                            }
+                        }
+                        .frame(height: 44)
+                    }
                 }
             }
             .navigationTitle("Trip inputs")
             .toolbar {
-                EditButton()
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EditButton()
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Generate Itinerary") {
+                        Task { await generateItinerary() }
+                    }
+                    .disabled(isGenerating)
+                }
+            }
+            .sheet(item: $draftItinerary) { itinerary in
+                ItineraryDraftView(itinerary: binding(for: itinerary))
             }
         }
+    }
+
+    private func generateItinerary() async {
+        isGenerating = true
+        let backendURL = URL(string: "https://yatrai-planner-worker.example.com")!
+        let service = ItineraryService(
+            client: NetworkItineraryClient(baseURL: backendURL),
+            tokenProvider: tokenProvider
+        )
+        let itinerary = await service.generateItinerary(for: trip)
+        draftItinerary = itinerary
+        isGenerating = false
+    }
+
+    private func binding(for itinerary: Itinerary) -> Binding<Itinerary> {
+        Binding(
+            get: { draftItinerary ?? itinerary },
+            set: { draftItinerary = $0 }
+        )
+    }
+
+    private var isUITestMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("UITEST_MODE")
+    }
+
+    private var tokenProvider: TokenProviding {
+        isUITestMode ? AnonymousTokenProvider() : authManager
     }
 }
 
