@@ -204,7 +204,7 @@ struct TripEditorView: View {
 
     private func generateItinerary() async {
         isGenerating = true
-        let backendURL = URL(string: "https://yatrai-planner-worker.example.com")!
+        let backendURL = URL(string: "https://api.yatrai.jugaadgraph.xyz")!
         let service = ItineraryService(
             client: NetworkItineraryClient(baseURL: backendURL),
             tokenProvider: tokenProvider
