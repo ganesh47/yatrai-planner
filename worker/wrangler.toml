@@ -7,8 +7,12 @@ ENVIRONMENT = "development"
 
 [[kv_namespaces]]
 binding = "RBAC_KV"
-id = "replace-with-kv-id"
-preview_id = "replace-with-kv-preview-id"
+id = "a67eaa9f473e40d9b80f9959d922c8fd"
+preview_id = "bd3c136f383b4f5e9c178ef97ccba2c9"
 
 [env.preview]
 name = "yatrai-planner-worker-preview"
+vars = { ENVIRONMENT = "development" }
+kv_namespaces = [
+  { binding = "RBAC_KV", id = "a67eaa9f473e40d9b80f9959d922c8fd", preview_id = "bd3c136f383b4f5e9c178ef97ccba2c9" }
+]
