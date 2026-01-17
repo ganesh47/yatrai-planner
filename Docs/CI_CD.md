@@ -27,3 +27,7 @@
 - Set Worker secrets locally or in CI:
   - wrangler secret put OPENAI_API_KEY
   - wrangler secret put APPLE_AUDIENCE
+## Local environment
+- Copy `.env.local.template` to `.env.local` and fill values.
+- `.env.local` is ignored by git.
+
