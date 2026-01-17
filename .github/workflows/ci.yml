@@ -32,6 +32,8 @@ jobs:
                   "YatraiPlanner.xcodeproj",
                   "-scheme",
                   "YatraiPlanner",
+                  "-sdk",
+                  "iphonesimulator",
               ],
               text=True,
               stderr=subprocess.STDOUT,
