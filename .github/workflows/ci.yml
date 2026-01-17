@@ -20,22 +20,28 @@ jobs:
       - name: Build and test (iOS Simulator)
         run: |
           SIMULATOR_UDID=$(python3 - <<'PY'
-          import json
+          import re
           import subprocess
           import sys
           
           out = subprocess.check_output(
-              ["xcrun", "simctl", "list", "devices", "available", "-j"],
+              [
+                  "xcodebuild",
+                  "-showdestinations",
+                  "-project",
+                  "YatraiPlanner.xcodeproj",
+                  "-scheme",
+                  "YatraiPlanner",
+              ],
               text=True,
           )
-          data = json.loads(out)
-          for runtime, devices in data.get("devices", {}).items():
-              if "iOS" not in runtime:
+          for line in out.splitlines():
+              if "platform:iOS Simulator" not in line:
                   continue
-              for device in devices:
-                  if device.get("isAvailable") and "iPhone" in device.get("name", ""):
-                      print(device["udid"])
-                      sys.exit(0)
+              match = re.search(r"id:([0-9a-fA-F-]{36})", line)
+              if match:
+                  print(match.group(1))
+                  sys.exit(0)
           sys.exit(1)
           PY
           )
