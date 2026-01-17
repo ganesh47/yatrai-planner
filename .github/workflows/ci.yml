@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Build and test (iOS Simulator)
+        run: |
+          SIMULATOR_UDID=$(python3 - <<'PY'
+          import json
+          import subprocess
+          import sys
+          
+          out = subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "-j"],
+              text=True,
+          )
+          data = json.loads(out)
+          for runtime, devices in data.get("devices", {}).items():
+              if "iOS" not in runtime:
+                  continue
+              for device in devices:
+                  if device.get("isAvailable") and "iPhone" in device.get("name", ""):
+                      print(device["udid"])
+                      sys.exit(0)
+          sys.exit(1)
+          PY
+          )
+          xcodebuild \
+            -project YatraiPlanner.xcodeproj \
+            -scheme YatraiPlanner \
+            -destination "platform=iOS Simulator,id=${SIMULATOR_UDID}" \
+            -sdk iphonesimulator \
+            test
