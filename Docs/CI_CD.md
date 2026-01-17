@@ -21,13 +21,17 @@
 - CLOUDFLARE_API_TOKEN: Worker deploy token
 - CLOUDFLARE_ACCOUNT_ID: Cloudflare account ID
 - OPENAI_API_KEY: Used only in Worker runtime (set via Wrangler secret)
+- APPLE_AUDIENCE: Apple client ID (set via Wrangler secret)
 
 ## Wrangler setup
 - Update worker/wrangler.toml with real KV IDs
 - Set Worker secrets locally or in CI:
   - wrangler secret put OPENAI_API_KEY
   - wrangler secret put APPLE_AUDIENCE
+
+## Base URLs
+- Dev: `https://dev.yatrai.jugaadgraph.xyz`
+- Prod: `https://api.yatrai.jugaadgraph.xyz`
 ## Local environment
 - Copy `.env.local.template` to `.env.local` and fill values.
 - `.env.local` is ignored by git.
-
