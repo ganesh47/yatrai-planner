@@ -20,31 +20,41 @@ jobs:
       - name: Build and test (iOS Simulator)
         run: |
           DESTINATION=$(python3 - <<'PY'
-          import re
+          import json
           import subprocess
           import sys
           
           out = subprocess.check_output(
-              [
-                  "xcodebuild",
-                  "-showdestinations",
-                  "-project",
-                  "YatraiPlanner.xcodeproj",
-                  "-scheme",
-                  "YatraiPlanner",
-                  "-sdk",
-                  "iphonesimulator",
-              ],
+              ["xcrun", "simctl", "list", "-j"],
               text=True,
-              stderr=subprocess.STDOUT,
           )
-          for line in out.splitlines():
-              if "platform:iOS Simulator" not in line:
-                  continue
-              match = re.search(r"id:([0-9a-fA-F-]{36})", line)
-              if match:
-                  print(f"platform=iOS Simulator,id={match.group(1)}")
+          data = json.loads(out)
+          runtimes = [
+              r
+              for r in data.get("runtimes", [])
+              if r.get("platform") == "iOS" and r.get("isAvailable")
+          ]
+          def version_key(runtime):
+              raw = runtime.get("version") or runtime.get("runtimeVersion") or "0"
+              return tuple(int(part) for part in raw.split(".") if part.isdigit())
+          
+          runtimes.sort(key=version_key, reverse=True)
+          if not runtimes:
+              print(out, file=sys.stderr)
+              print("platform=iOS Simulator,name=Any iOS Simulator Device")
+              sys.exit(0)
+          
+          runtime_id = runtimes[0]["identifier"]
+          devices = data.get("devices", {}).get(runtime_id, [])
+          for device in devices:
+              if device.get("isAvailable") and "iPhone" in device.get("name", ""):
+                  print(f"platform=iOS Simulator,id={device['udid']}")
                   sys.exit(0)
+          for device in devices:
+              if device.get("isAvailable"):
+                  print(f"platform=iOS Simulator,id={device['udid']}")
+                  sys.exit(0)
+          
           print(out, file=sys.stderr)
           print("platform=iOS Simulator,name=Any iOS Simulator Device")
           PY
