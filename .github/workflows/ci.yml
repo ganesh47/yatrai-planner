@@ -34,6 +34,7 @@ jobs:
                   "YatraiPlanner",
               ],
               text=True,
+              stderr=subprocess.STDOUT,
           )
           for line in out.splitlines():
               if "platform:iOS Simulator" not in line:
