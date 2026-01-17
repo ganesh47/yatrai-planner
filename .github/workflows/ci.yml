@@ -65,4 +65,5 @@ jobs:
             -scheme YatraiPlanner \
             -destination "${DESTINATION}" \
             -sdk iphonesimulator \
+            -enableCodeCoverage YES \
             test

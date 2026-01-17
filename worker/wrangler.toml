@@ -9,3 +9,6 @@ ENVIRONMENT = "development"
 binding = "RBAC_KV"
 id = "replace-with-kv-id"
 preview_id = "replace-with-kv-preview-id"
+
+[env.preview]
+name = "yatrai-planner-worker-preview"
