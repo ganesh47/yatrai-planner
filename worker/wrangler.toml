@@ -1,0 +1,6 @@
+name = "yatrai-planner-worker"
+main = "src/index.ts"
+compatibility_date = "2026-01-17"
+
+[vars]
+ENVIRONMENT = "development"
