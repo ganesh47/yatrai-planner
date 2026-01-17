@@ -134,6 +134,44 @@ enum MilestoneType: Codable, Identifiable, Equatable {
             return value.isEmpty ? "Custom" : value
         }
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case value
+    }
+
+    private enum Kind: String, Codable {
+        case standard
+        case custom
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try container.decode(Kind.self, forKey: .kind)
+        let value = try container.decode(String.self, forKey: .value)
+        switch kind {
+        case .standard:
+            if let standard = StandardMilestoneType(rawValue: value) {
+                self = .standard(standard)
+            } else {
+                self = .custom(value)
+            }
+        case .custom:
+            self = .custom(value)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .standard(let value):
+            try container.encode(Kind.standard, forKey: .kind)
+            try container.encode(value.rawValue, forKey: .value)
+        case .custom(let value):
+            try container.encode(Kind.custom, forKey: .kind)
+            try container.encode(value, forKey: .value)
+        }
+    }
 }
 
 enum StandardMilestoneType: String, CaseIterable, Codable, Identifiable {
