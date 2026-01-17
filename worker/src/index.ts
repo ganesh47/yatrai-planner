@@ -1,7 +1,13 @@
 import { verifyAppleIdentityToken } from "./auth/appleJwt.js";
+import { handleAdminSetRole } from "./handlers/admin.js";
+import { handleItineraryRequest } from "./handlers/itinerary.js";
+import { createOpenAIClient } from "./openai/client.js";
+import type { KVNamespaceLike } from "./types.js";
 
 export interface Env {
   APPLE_AUDIENCE?: string;
+  OPENAI_API_KEY?: string;
+  RBAC_KV: KVNamespaceLike;
 }
 
 export default {
@@ -9,41 +15,61 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/health") {
-      return new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: { "content-type": "application/json" }
-      });
+      return json({ ok: true }, 200);
     }
 
     if (url.pathname === "/auth/verify" && request.method === "POST") {
-      const authHeader = request.headers.get("authorization") ?? "";
-      const token = authHeader.replace(/^Bearer\s+/i, "");
-      if (!token) {
-        return new Response(JSON.stringify({ error: "missing_token" }), {
-          status: 401,
-          headers: { "content-type": "application/json" }
-        });
-      }
-
-      const audience = env.APPLE_AUDIENCE ?? "";
-      const issuer = "https://appleid.apple.com";
-      try {
-        const payload = await verifyAppleIdentityToken(token, { audience, issuer });
-        return new Response(JSON.stringify({ sub: payload.sub, email: payload.email ?? null }), {
-          status: 200,
-          headers: { "content-type": "application/json" }
-        });
-      } catch (error) {
-        return new Response(JSON.stringify({ error: "invalid_token" }), {
-          status: 401,
-          headers: { "content-type": "application/json" }
-        });
-      }
+      return handleAuthVerify(request, env);
     }
 
-    return new Response(JSON.stringify({ error: "not_found" }), {
-      status: 404,
-      headers: { "content-type": "application/json" }
-    });
+    if (url.pathname === "/itinerary" && request.method === "POST") {
+      const openaiClient = createOpenAIClient(env.OPENAI_API_KEY ?? "");
+      return handleItineraryRequest(request, {
+        kv: env.RBAC_KV,
+        verifyToken: (token) =>
+          verifyAppleIdentityToken(token, {
+            audience: env.APPLE_AUDIENCE ?? "",
+            issuer: "https://appleid.apple.com"
+          }),
+        openaiClient
+      });
+    }
+
+    if (url.pathname === "/admin/set-role" && request.method === "POST") {
+      return handleAdminSetRole(request, {
+        kv: env.RBAC_KV,
+        verifyToken: (token) =>
+          verifyAppleIdentityToken(token, {
+            audience: env.APPLE_AUDIENCE ?? "",
+            issuer: "https://appleid.apple.com"
+          })
+      });
+    }
+
+    return json({ error: "not_found" }, 404);
   }
 };
+
+async function handleAuthVerify(request: Request, env: Env): Promise<Response> {
+  const authHeader = request.headers.get("authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  if (!token) {
+    return json({ error: "missing_token" }, 401);
+  }
+
+  const audience = env.APPLE_AUDIENCE ?? "";
+  const issuer = "https://appleid.apple.com";
+  try {
+    const payload = await verifyAppleIdentityToken(token, { audience, issuer });
+    return json({ sub: payload.sub, email: payload.email ?? null }, 200);
+  } catch {
+    return json({ error: "invalid_token" }, 401);
+  }
+}
+
+function json(payload: unknown, status: number): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { "content-type": "application/json" }
+  });
+}

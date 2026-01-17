@@ -4,3 +4,8 @@ compatibility_date = "2026-01-17"
 
 [vars]
 ENVIRONMENT = "development"
+
+[[kv_namespaces]]
+binding = "RBAC_KV"
+id = "replace-with-kv-id"
+preview_id = "replace-with-kv-preview-id"
