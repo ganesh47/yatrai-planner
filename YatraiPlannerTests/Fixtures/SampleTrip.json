@@ -61,5 +61,18 @@
       "notes": null
     }
   ],
-  "isProUser": false
+  "isProUser": false,
+  "checklists": [
+    {
+      "id": "77777777-7777-7777-7777-777777777777",
+      "title": "Essentials",
+      "items": [
+        {
+          "id": "88888888-8888-8888-8888-888888888888",
+          "title": "Documents",
+          "isDone": false
+        }
+      ]
+    }
+  ]
 }

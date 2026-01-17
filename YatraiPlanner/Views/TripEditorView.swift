@@ -111,6 +111,32 @@ struct TripEditorView: View {
                     }
                 }
 
+                Section("Cost summary") {
+                    let cost = CostCalculator().estimateCost(for: trip)
+                    HStack {
+                        Text("Fuel")
+                        Spacer()
+                        Text(String(format: \"%.0f\", cost.fuelCost))
+                    }
+                    HStack {
+                        Text("Food")
+                        Spacer()
+                        Text(String(format: \"%.0f\", cost.foodCost))
+                    }
+                    HStack {
+                        Text("Lodging")
+                        Spacer()
+                        Text(String(format: \"%.0f\", cost.lodgingCost))
+                    }
+                    HStack {
+                        Text("Total")
+                            .fontWeight(.semibold)
+                        Spacer()
+                        Text(String(format: \"%.0f\", cost.totalCost))
+                            .fontWeight(.semibold)
+                    }
+                }
+
                 Section("Milestones") {
                     ForEach($trip.milestones) { $milestone in
                         NavigationLink {
@@ -149,6 +175,12 @@ struct TripEditorView: View {
                             }
                         }
                         .frame(height: 44)
+                    }
+                }
+
+                Section("Checklists") {
+                    NavigationLink(\"Edit checklists\") {
+                        ChecklistsView(checklists: $trip.checklists)
                     }
                 }
             }

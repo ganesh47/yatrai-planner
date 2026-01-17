@@ -11,6 +11,7 @@ struct TripInput: Identifiable, Codable {
     var familyProfile: FamilyProfile
     var costPreferences: CostPreferences
     var milestones: [Milestone]
+    var checklists: [Checklist]
     var isProUser: Bool
 
     static let sample: TripInput = {
@@ -44,6 +45,12 @@ struct TripInput: Identifiable, Codable {
             milestones: [
                 Milestone(type: .standard(.temple), name: "Tirupati", mustDo: true, timeWindow: nil, notes: "Avoid Ekadashi"),
                 Milestone(type: .standard(.town), name: "Pune", mustDo: false, timeWindow: nil, notes: nil)
+            ],
+            checklists: [
+                Checklist(title: "Essentials", items: [
+                    ChecklistItem(title: "Documents"),
+                    ChecklistItem(title: "Snacks")
+                ])
             ],
             isProUser: false
         )
@@ -111,6 +118,18 @@ struct Milestone: Identifiable, Codable {
 struct TimeWindow: Codable {
     var start: Date?
     var end: Date?
+}
+
+struct Checklist: Identifiable, Codable {
+    var id: UUID = UUID()
+    var title: String
+    var items: [ChecklistItem]
+}
+
+struct ChecklistItem: Identifiable, Codable {
+    var id: UUID = UUID()
+    var title: String
+    var isDone: Bool = false
 }
 
 enum MilestoneType: Codable, Identifiable, Equatable {
