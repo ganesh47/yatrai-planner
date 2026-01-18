@@ -1,0 +1,128 @@
+name: Security Scans
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  secrets-scan:
+    name: Secrets Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: >-
+            --redact
+            --report-format sarif
+            --report-path gitleaks.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gitleaks.sarif
+
+  codeql-swift:
+    name: SAST (Swift)
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages:
+            - swift
+          build-mode: manual
+
+      - name: Build (iOS Simulator)
+        run: |
+          DESTINATION=$(python3 - <<'PY'
+          import json
+          import subprocess
+          import sys
+
+          out = subprocess.check_output(
+              ["xcrun", "simctl", "list", "-j"],
+              text=True,
+          )
+          data = json.loads(out)
+          runtimes = [
+              r
+              for r in data.get("runtimes", [])
+              if r.get("platform") == "iOS" and r.get("isAvailable")
+          ]
+          def version_key(runtime):
+              raw = runtime.get("version") or runtime.get("runtimeVersion") or "0"
+              return tuple(int(part) for part in raw.split(".") if part.isdigit())
+
+          runtimes.sort(key=version_key, reverse=True)
+          if not runtimes:
+              print(out, file=sys.stderr)
+              print("platform=iOS Simulator,name=Any iOS Simulator Device")
+              sys.exit(0)
+
+          runtime_id = runtimes[0]["identifier"]
+          devices = data.get("devices", {}).get(runtime_id, [])
+          for device in devices:
+              if device.get("isAvailable") and "iPhone" in device.get("name", ""):
+                  print(f"platform=iOS Simulator,id={device['udid']}")
+                  sys.exit(0)
+          for device in devices:
+              if device.get("isAvailable"):
+                  print(f"platform=iOS Simulator,id={device['udid']}")
+                  sys.exit(0)
+
+          print(out, file=sys.stderr)
+          print("platform=iOS Simulator,name=Any iOS Simulator Device")
+          PY
+          )
+          echo "Using destination: ${DESTINATION}"
+          xcodebuild \
+            -project YatraiPlanner.xcodeproj \
+            -scheme YatraiPlanner \
+            -destination "${DESTINATION}" \
+            -sdk iphonesimulator \
+            -parallel-testing-enabled NO \
+            -maximum-concurrent-test-simulator-destinations 1 \
+            build
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
+
+  codeql-worker:
+    name: SAST (Worker)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages:
+            - javascript-typescript
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
