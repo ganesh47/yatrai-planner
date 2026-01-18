@@ -3,11 +3,9 @@ import SwiftUI
 
 struct MapPreviewView: View {
     let query: String?
-    @State private var position = MapCameraPosition.region(
-        MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 13.0827, longitude: 80.2707),
-            span: MKCoordinateSpan(latitudeDelta: 0.2, longitudeDelta: 0.2)
-        )
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 13.0827, longitude: 80.2707),
+        span: MKCoordinateSpan(latitudeDelta: 0.2, longitudeDelta: 0.2)
     )
     @State private var isLoading = false
     @State private var hasCoordinate = false
@@ -15,7 +13,7 @@ struct MapPreviewView: View {
     var body: some View {
         ZStack {
             if hasCoordinate {
-                Map(position: $position)
+                Map(coordinateRegion: $region, interactionModes: [])
                     .frame(height: 120)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             } else {
@@ -46,7 +44,7 @@ struct MapPreviewView: View {
         }
         isLoading = true
         if let coordinate = await LocationResolver.shared.resolve(query: query) {
-            position = .region(
+            region = MKCoordinateRegion(
                 center: coordinate,
                 span: MKCoordinateSpan(latitudeDelta: 0.2, longitudeDelta: 0.2)
             )

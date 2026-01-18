@@ -26,7 +26,7 @@ final class LocationResolver {
         let search = MKLocalSearch(request: request)
         do {
             let response = try await search.start()
-            if let coordinate = response.mapItems.first?.location?.coordinate {
+            if let coordinate = response.mapItems.first?.placemark.coordinate {
                 store(coordinate: coordinate, for: normalized)
                 return coordinate
             }
