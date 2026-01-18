@@ -99,9 +99,11 @@ jobs:
             -scheme YatraiPlanner \
             -destination "${DESTINATION}" \
             -sdk iphonesimulator \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             -parallel-testing-enabled NO \
             -maximum-concurrent-test-simulator-destinations 1 \
-            build
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
 
       - name: Analyze
         uses: github/codeql-action/analyze@v3
