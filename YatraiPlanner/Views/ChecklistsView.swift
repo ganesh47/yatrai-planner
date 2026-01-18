@@ -5,10 +5,9 @@ struct ChecklistsView: View {
 
     var body: some View {
         SwiftUI.List {
-            SwiftUI.ForEach(checklists.indices, id: \.self) { checklistIndex in
-                let checklist = checklists[checklistIndex]
+            SwiftUI.ForEach(Array(checklists.enumerated()), id: \.element.id) { checklistIndex, checklist in
                 SwiftUI.Section(checklist.title) {
-                    SwiftUI.ForEach(checklist.items.indices, id: \.self) { itemIndex in
+                    SwiftUI.ForEach(Array(checklist.items.enumerated()), id: \.element.id) { itemIndex, _ in
                         let isDone = Binding(
                             get: { checklists[checklistIndex].items[itemIndex].isDone },
                             set: { checklists[checklistIndex].items[itemIndex].isDone = $0 }
