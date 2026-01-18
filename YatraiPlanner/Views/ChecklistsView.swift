@@ -5,26 +5,35 @@ struct ChecklistsView: View {
 
     var body: some View {
         List {
-            SwiftUI.ForEach($checklists) { $checklist in
+            ForEach(checklists.indices, id: \.self) { checklistIndex in
+                let checklist = checklists[checklistIndex]
                 Section(checklist.title) {
-                    SwiftUI.ForEach($checklist.items) { $item in
+                    ForEach(checklist.items.indices, id: \.self) { itemIndex in
+                        let isDone = Binding(
+                            get: { checklists[checklistIndex].items[itemIndex].isDone },
+                            set: { checklists[checklistIndex].items[itemIndex].isDone = $0 }
+                        )
+                        let title = Binding(
+                            get: { checklists[checklistIndex].items[itemIndex].title },
+                            set: { checklists[checklistIndex].items[itemIndex].title = $0 }
+                        )
                         HStack {
                             Button {
-                                item.isDone.toggle()
+                                isDone.wrappedValue.toggle()
                             } label: {
-                                Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
+                                Image(systemName: isDone.wrappedValue ? "checkmark.circle.fill" : "circle")
                             }
                             .buttonStyle(.borderless)
 
-                            TextField("Item", text: $item.title)
+                            TextField("Item", text: title)
                         }
                     }
                     .onDelete { offsets in
-                        checklist.items.remove(atOffsets: offsets)
+                        checklists[checklistIndex].items.remove(atOffsets: offsets)
                     }
 
                     Button("Add item") {
-                        checklist.items.append(ChecklistItem(title: ""))
+                        checklists[checklistIndex].items.append(ChecklistItem(title: ""))
                     }
                 }
             }
