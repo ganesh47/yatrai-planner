@@ -48,8 +48,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages:
-            - swift
+          languages: swift
           build-mode: manual
 
       - name: Build (iOS Simulator)
@@ -121,8 +120,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages:
-            - javascript-typescript
+          languages: javascript-typescript
 
       - name: Analyze
         uses: github/codeql-action/analyze@v3
