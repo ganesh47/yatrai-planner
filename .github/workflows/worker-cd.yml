@@ -32,7 +32,6 @@ jobs:
           workingDirectory: worker
           wranglerVersion: "4.59.2"
           command: deploy
-          quiet: true
 
       - name: Smoke test (workers.dev)
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
@@ -74,7 +73,6 @@ jobs:
           workingDirectory: worker
           wranglerVersion: "4.59.2"
           command: deploy --env preview
-          quiet: true
 
       - name: Smoke test (workers.dev)
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
