@@ -8,13 +8,14 @@ on:
 
 jobs:
   deploy-main:
-    if: github.event_name == 'push' && secrets.CLOUDFLARE_API_TOKEN != ''
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Deploy worker
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -23,9 +24,11 @@ jobs:
           command: deploy
 
       - name: Smoke test (workers.dev)
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         run: curl -sSf https://yatrai-planner-worker.raman-ganesh.workers.dev/health
 
       - name: Integration checks (workers.dev)
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         run: |
           set -e
           auth_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://yatrai-planner-worker.raman-ganesh.workers.dev/auth/verify)
@@ -40,13 +43,14 @@ jobs:
           fi
 
   deploy-preview:
-    if: github.event_name == 'pull_request' && secrets.CLOUDFLARE_API_TOKEN != ''
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Deploy preview worker
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -55,9 +59,11 @@ jobs:
           command: deploy --env preview
 
       - name: Smoke test (workers.dev)
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         run: curl -sSf https://yatrai-planner-worker-preview.raman-ganesh.workers.dev/health
 
       - name: Integration checks (workers.dev)
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         run: |
           set -e
           auth_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://yatrai-planner-worker-preview.raman-ganesh.workers.dev/auth/verify)
