@@ -18,7 +18,12 @@ struct DeterministicPlanner {
             if index == 0 {
                 items.append("Start: \(trip.startCity)")
             }
-            items.append(contentsOf: slice.map { "Milestone: \($0.name.isEmpty ? $0.type.label : $0.name)" })
+            let milestoneItems = slice.map { "Milestone: \($0.name.isEmpty ? $0.type.label : $0.name)" }
+            if trip.isProUser {
+                items.append(contentsOf: milestoneItems)
+            } else {
+                items.append(contentsOf: milestoneItems.prefix(2))
+            }
             if index == dayCount - 1 {
                 items.append("End: \(trip.endCity)")
             }

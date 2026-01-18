@@ -52,7 +52,7 @@ struct TripInput: Identifiable, Codable {
                     ChecklistItem(title: "Snacks")
                 ])
             ],
-            isProUser: false
+            isProUser: true
         )
     }()
 }

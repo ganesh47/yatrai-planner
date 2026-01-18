@@ -19,7 +19,7 @@ final class YatraiPlannerUITests: XCTestCase {
         app.launchArguments.append("UITEST_MODE")
         app.launch()
 
-        XCTAssertTrue(app.navigationBars["Trip inputs"].exists)
+        XCTAssertTrue(app.navigationBars["Trip basics"].exists)
         XCTAssertTrue(app.textFields["Starting city"].exists)
     }
 
@@ -29,7 +29,13 @@ final class YatraiPlannerUITests: XCTestCase {
         app.launchArguments.append("UITEST_MODE")
         app.launch()
 
+        while app.buttons["Next"].exists {
+            app.buttons["Next"].tap()
+        }
+
         app.buttons["Generate Itinerary"].tap()
+        XCTAssertTrue(app.navigationBars["Trip outputs"].waitForExistence(timeout: 5))
+        app.staticTexts["Itinerary"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Itinerary draft"].waitForExistence(timeout: 5))
     }
 }

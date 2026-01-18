@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ItineraryDraftView: View {
     @Binding var itinerary: Itinerary
+    let isProUser: Bool
 
     var body: some View {
         NavigationStack {
@@ -31,6 +32,7 @@ struct ItineraryDraftView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            MapPreviewView(query: locationQuery(for: day))
             tableHeader
             ForEach(day.items.indices, id: \.self) { itemIndex in
                 tableRow(
@@ -46,6 +48,7 @@ struct ItineraryDraftView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .disabled(!isProUser && !canAddItem(in: day))
         }
         .padding(16)
         .background(
@@ -90,6 +93,38 @@ struct ItineraryDraftView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
+    private func canAddItem(in day: ItineraryDay) -> Bool {
+        let nonFixedCount = day.items.filter { !isFixedItem($0) }.count
+        return nonFixedCount < 2
+    }
+
+    private func isFixedItem(_ item: String) -> Bool {
+        let trimmed = item.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.hasPrefix("Start:") || trimmed.hasPrefix("End:")
+    }
+
+    private func locationQuery(for day: ItineraryDay) -> String? {
+        for item in day.items {
+            if let query = stripPrefix(from: item, prefix: "Milestone:") {
+                return query
+            }
+            if let query = stripPrefix(from: item, prefix: "Start:") {
+                return query
+            }
+            if let query = stripPrefix(from: item, prefix: "End:") {
+                return query
+            }
+        }
+        return day.title
+    }
+
+    private func stripPrefix(from value: String, prefix: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix(prefix) else { return nil }
+        let suffix = trimmed.dropFirst(prefix.count).trimmingCharacters(in: .whitespacesAndNewlines)
+        return suffix.isEmpty ? nil : suffix
+    }
+
     private func binding(for dayIndex: Int, itemIndex: Int) -> Binding<String> {
         Binding(
             get: { itinerary.days[dayIndex].items[itemIndex] },
@@ -110,6 +145,7 @@ struct ItineraryDraftView: View {
                 ],
                 lastUpdated: Date()
             )
-        )
+        ),
+        isProUser: true
     )
 }

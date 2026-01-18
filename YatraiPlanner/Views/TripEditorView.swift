@@ -1,205 +1,314 @@
 import AuthenticationServices
 import SwiftUI
 
+private enum TripWizardStep: Int, CaseIterable, Identifiable {
+    case basics
+    case dates
+    case vehicle
+    case constraints
+    case family
+    case costs
+    case milestones
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .basics:
+            return "Trip basics"
+        case .dates:
+            return "Dates & times"
+        case .vehicle:
+            return "Vehicle"
+        case .constraints:
+            return "Constraints"
+        case .family:
+            return "Family"
+        case .costs:
+            return "Costs"
+        case .milestones:
+            return "Milestones"
+        }
+    }
+
+    var shortTitle: String {
+        switch self {
+        case .basics:
+            return "Basics"
+        case .dates:
+            return "Dates"
+        case .vehicle:
+            return "Vehicle"
+        case .constraints:
+            return "Limits"
+        case .family:
+            return "Family"
+        case .costs:
+            return "Costs"
+        case .milestones:
+            return "Milestones"
+        }
+    }
+}
+
 struct TripEditorView: View {
     @State private var trip: TripInput = .sample
     @StateObject private var authManager = AppleAuthManager()
-    @State private var draftItinerary: Itinerary?
+    @State private var outputItinerary: Itinerary?
     @State private var isGenerating = false
+    @State private var currentIndex = 0
+    @State private var completedSteps: Set<TripWizardStep> = []
+    @State private var showOutputs = false
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Route") {
-                    TextField("Starting city", text: $trip.startCity)
-                    TextField("Ending city", text: $trip.endCity)
+                stepContent
+            }
+            .navigationTitle(currentStep.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if currentStep == .milestones {
+                    EditButton()
                 }
-
-                Section("Trip dates") {
-                    DatePicker("Start", selection: $trip.startDate, displayedComponents: [.date, .hourAndMinute])
-                    DatePicker("End", selection: $trip.endDate, displayedComponents: [.date, .hourAndMinute])
+            }
+            .safeAreaInset(edge: .bottom) {
+                wizardFooter
+            }
+            .onChange(of: trip.isProUser) { _, _ in
+                syncStepIndex()
+            }
+            .sheet(isPresented: $showOutputs) {
+                NavigationStack {
+                    OutputHubView(trip: $trip, itinerary: $outputItinerary)
                 }
+            }
+        }
+    }
 
-                Section("Vehicle") {
-                    TextField("Vehicle name", text: $trip.vehicle.name)
-                    Picker("Fuel type", selection: $trip.vehicle.fuelType) {
-                        ForEach(FuelType.allCases) { fuel in
-                            Text(fuel.rawValue.capitalized).tag(fuel)
+    private var steps: [TripWizardStep] {
+        TripWizardStep.allCases.filter { step in
+            step != .milestones || trip.isProUser
+        }
+    }
+
+    private var currentStep: TripWizardStep {
+        steps[min(currentIndex, max(steps.count - 1, 0))]
+    }
+
+    private var isLastStep: Bool {
+        currentIndex == steps.count - 1
+    }
+
+    @ViewBuilder
+    private var stepContent: some View {
+        switch currentStep {
+        case .basics:
+            Section("Route") {
+                TextField("Starting city", text: $trip.startCity)
+                    .textInputAutocapitalization(.words)
+                TextField("Ending city", text: $trip.endCity)
+                    .textInputAutocapitalization(.words)
+            }
+
+            Section("Account") {
+                Toggle("Pro features enabled", isOn: $trip.isProUser)
+                if !isUITestMode {
+                    SignInWithAppleButton(.signIn) { request in
+                        request.requestedScopes = [.fullName, .email]
+                    } onCompletion: { _ in
+                        Task {
+                            try? await authManager.signIn()
                         }
                     }
-                    Stepper(value: $trip.vehicle.mileageKmPerLiter, in: 5...30, step: 0.5) {
-                        HStack {
-                            Text("Mileage")
-                            Spacer()
-                            Text(String(format: "%.1f km/L", trip.vehicle.mileageKmPerLiter))
-                        }
-                    }
-                    Stepper(value: $trip.vehicle.fuelPricePerLiter, in: 50...200, step: 1) {
-                        HStack {
-                            Text("Fuel price")
-                            Spacer()
-                            Text("\(Int(trip.vehicle.fuelPricePerLiter)) / L")
-                        }
-                    }
+                    .frame(height: 44)
                 }
-
-                Section("Driving constraints") {
-                    Stepper(value: $trip.drivingConstraints.maxKmPerDay, in: 100...1000, step: 25) {
-                        HStack {
-                            Text("Max km/day")
-                            Spacer()
-                            Text("\(trip.drivingConstraints.maxKmPerDay)")
-                        }
-                    }
-                    Toggle("Avoid night driving", isOn: $trip.drivingConstraints.avoidNightDriving)
-                    Stepper(value: $trip.drivingConstraints.breakEveryHours, in: 1...6, step: 1) {
-                        HStack {
-                            Text("Break every")
-                            Spacer()
-                            Text("\(trip.drivingConstraints.breakEveryHours) hrs")
-                        }
-                    }
-                    Stepper(value: $trip.drivingConstraints.breakDurationMinutes, in: 5...60, step: 5) {
-                        HStack {
-                            Text("Break duration")
-                            Spacer()
-                            Text("\(trip.drivingConstraints.breakDurationMinutes) min")
-                        }
-                    }
-                }
-
-                Section("Family profile") {
-                    Stepper(value: $trip.familyProfile.adults, in: 1...8, step: 1) {
-                        HStack {
-                            Text("Adults")
-                            Spacer()
-                            Text("\(trip.familyProfile.adults)")
-                        }
-                    }
-
-                    ForEach($trip.familyProfile.kids) { $kid in
-                        KidEditorRow(kid: $kid)
-                    }
-                    .onDelete { offsets in
-                        trip.familyProfile.kids.remove(atOffsets: offsets)
-                    }
-
-                    Button("Add kid") {
-                        trip.familyProfile.kids.append(Kid(name: "Kid", ageMonths: 24))
+            }
+        case .dates:
+            Section("Trip dates") {
+                DatePicker("Start", selection: $trip.startDate, displayedComponents: [.date, .hourAndMinute])
+                DatePicker("End", selection: $trip.endDate, displayedComponents: [.date, .hourAndMinute])
+            }
+        case .vehicle:
+            Section("Vehicle") {
+                TextField("Vehicle name", text: $trip.vehicle.name)
+                Picker("Fuel type", selection: $trip.vehicle.fuelType) {
+                    ForEach(FuelType.allCases) { fuel in
+                        Text(fuel.rawValue.capitalized).tag(fuel)
                     }
                 }
-
-                Section("Cost preferences") {
-                    Picker("Food type", selection: $trip.costPreferences.foodType) {
-                        ForEach(FoodType.allCases) { food in
-                            Text(food.rawValue.capitalized).tag(food)
-                        }
-                    }
-                    Stepper(value: $trip.costPreferences.dailyFoodBudget, in: 500...10000, step: 250) {
-                        HStack {
-                            Text("Daily food budget")
-                            Spacer()
-                            Text("\(trip.costPreferences.dailyFoodBudget)")
-                        }
-                    }
-                    Stepper(value: $trip.costPreferences.lodgingBudget, in: 500...15000, step: 500) {
-                        HStack {
-                            Text("Lodging budget")
-                            Spacer()
-                            Text("\(trip.costPreferences.lodgingBudget)")
-                        }
-                    }
-                }
-
-                Section("Cost summary") {
-                    let cost = CostCalculator().estimateCost(for: trip)
+                Stepper(value: $trip.vehicle.mileageKmPerLiter, in: 5...30, step: 0.5) {
                     HStack {
-                        Text("Fuel")
+                        Text("Mileage")
                         Spacer()
-                        Text(String(format: "%.0f", cost.fuelCost))
-                    }
-                    HStack {
-                        Text("Food")
-                        Spacer()
-                        Text(String(format: "%.0f", cost.foodCost))
-                    }
-                    HStack {
-                        Text("Lodging")
-                        Spacer()
-                        Text(String(format: "%.0f", cost.lodgingCost))
-                    }
-                    HStack {
-                        Text("Total")
-                            .fontWeight(.semibold)
-                        Spacer()
-                        Text(String(format: "%.0f", cost.totalCost))
-                            .fontWeight(.semibold)
+                        Text(String(format: "%.1f km/L", trip.vehicle.mileageKmPerLiter))
                     }
                 }
-
-                Section("Milestones") {
-                    ForEach($trip.milestones) { $milestone in
-                        NavigationLink {
-                            MilestoneEditorView(milestone: $milestone, allowCustomType: trip.isProUser)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(milestone.name.isEmpty ? "Untitled" : milestone.name)
-                                Text(milestone.type.label)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .onDelete { offsets in
-                        trip.milestones.remove(atOffsets: offsets)
-                    }
-                    .onMove { source, destination in
-                        trip.milestones.move(fromOffsets: source, toOffset: destination)
-                    }
-
-                    Button("Add milestone") {
-                        trip.milestones.append(
-                            Milestone(type: .standard(.other), name: "", mustDo: false, timeWindow: nil, notes: nil)
-                        )
-                    }
-                }
-
-                Section("Account") {
-                    Toggle("Pro features enabled", isOn: $trip.isProUser)
-                    if !isUITestMode {
-                        SignInWithAppleButton(.signIn) { request in
-                            request.requestedScopes = [.fullName, .email]
-                        } onCompletion: { _ in
-                            Task {
-                                try? await authManager.signIn()
-                            }
-                        }
-                        .frame(height: 44)
-                    }
-                }
-
-                Section("Checklists") {
-                    NavigationLink("Edit checklists") {
-                        ChecklistsView(checklists: $trip.checklists)
+                Stepper(value: $trip.vehicle.fuelPricePerLiter, in: 50...200, step: 1) {
+                    HStack {
+                        Text("Fuel price")
+                        Spacer()
+                        Text("\(Int(trip.vehicle.fuelPricePerLiter)) / L")
                     }
                 }
             }
-            .navigationTitle("Trip inputs")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+        case .constraints:
+            Section("Driving constraints") {
+                Stepper(value: $trip.drivingConstraints.maxKmPerDay, in: 100...1000, step: 25) {
+                    HStack {
+                        Text("Max km/day")
+                        Spacer()
+                        Text("\(trip.drivingConstraints.maxKmPerDay)")
+                    }
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Generate Itinerary") {
+                Toggle("Avoid night driving", isOn: $trip.drivingConstraints.avoidNightDriving)
+                Stepper(value: $trip.drivingConstraints.breakEveryHours, in: 1...6, step: 1) {
+                    HStack {
+                        Text("Break every")
+                        Spacer()
+                        Text("\(trip.drivingConstraints.breakEveryHours) hrs")
+                    }
+                }
+                Stepper(value: $trip.drivingConstraints.breakDurationMinutes, in: 5...60, step: 5) {
+                    HStack {
+                        Text("Break duration")
+                        Spacer()
+                        Text("\(trip.drivingConstraints.breakDurationMinutes) min")
+                    }
+                }
+            }
+        case .family:
+            Section("Family profile") {
+                Stepper(value: $trip.familyProfile.adults, in: 1...8, step: 1) {
+                    HStack {
+                        Text("Adults")
+                        Spacer()
+                        Text("\(trip.familyProfile.adults)")
+                    }
+                }
+
+                ForEach($trip.familyProfile.kids) { $kid in
+                    KidEditorRow(kid: $kid)
+                }
+                .onDelete { offsets in
+                    trip.familyProfile.kids.remove(atOffsets: offsets)
+                }
+
+                Button("Add kid") {
+                    trip.familyProfile.kids.append(Kid(name: "Kid", ageMonths: 24))
+                }
+            }
+        case .costs:
+            Section("Cost preferences") {
+                Picker("Food type", selection: $trip.costPreferences.foodType) {
+                    ForEach(FoodType.allCases) { food in
+                        Text(food.rawValue.capitalized).tag(food)
+                    }
+                }
+                Stepper(value: $trip.costPreferences.dailyFoodBudget, in: 500...10000, step: 250) {
+                    HStack {
+                        Text("Daily food budget")
+                        Spacer()
+                        Text("\(trip.costPreferences.dailyFoodBudget)")
+                    }
+                }
+                Stepper(value: $trip.costPreferences.lodgingBudget, in: 500...15000, step: 500) {
+                    HStack {
+                        Text("Lodging budget")
+                        Spacer()
+                        Text("\(trip.costPreferences.lodgingBudget)")
+                    }
+                }
+            }
+        case .milestones:
+            Section("Milestones") {
+                ForEach($trip.milestones) { $milestone in
+                    NavigationLink {
+                        MilestoneEditorView(milestone: $milestone, allowCustomType: trip.isProUser)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(milestone.name.isEmpty ? "Untitled" : milestone.name)
+                            Text(milestone.type.label)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .onDelete { offsets in
+                    trip.milestones.remove(atOffsets: offsets)
+                }
+                .onMove { source, destination in
+                    trip.milestones.move(fromOffsets: source, toOffset: destination)
+                }
+
+                Button("Add milestone") {
+                    trip.milestones.append(
+                        Milestone(type: .standard(.other), name: "", mustDo: false, timeWindow: nil, notes: nil)
+                    )
+                }
+            }
+        }
+    }
+
+    private var wizardFooter: some View {
+        VStack(spacing: 12) {
+            Divider()
+            HStack {
+                Button("Back") {
+                    goBack()
+                }
+                .disabled(currentIndex == 0)
+
+                Spacer()
+
+                if isLastStep {
+                    Button(isGenerating ? "Generating…" : "Generate Itinerary") {
                         Task { await generateItinerary() }
                     }
                     .disabled(isGenerating)
+                } else {
+                    Button("Next") {
+                        goNext()
+                    }
                 }
             }
-            .sheet(item: $draftItinerary) { itinerary in
-                ItineraryDraftView(itinerary: binding(for: itinerary))
-            }
+            .padding(.horizontal, 16)
+
+            BreadcrumbBar(
+                steps: steps,
+                currentStep: currentStep,
+                completedSteps: completedSteps,
+                onSelect: { step in
+                    goToStep(step)
+                }
+            )
+            .padding(.horizontal, 12)
         }
+        .padding(.bottom, 8)
+        .background(.ultraThinMaterial)
+    }
+
+    private func goNext() {
+        completedSteps.insert(currentStep)
+        currentIndex = min(currentIndex + 1, steps.count - 1)
+    }
+
+    private func goBack() {
+        currentIndex = max(currentIndex - 1, 0)
+    }
+
+    private func goToStep(_ step: TripWizardStep) {
+        guard let index = steps.firstIndex(of: step) else { return }
+        if completedSteps.contains(step) || index <= currentIndex {
+            currentIndex = index
+        }
+    }
+
+    private func syncStepIndex() {
+        if currentIndex >= steps.count {
+            currentIndex = max(steps.count - 1, 0)
+        }
+        completedSteps = completedSteps.filter { steps.contains($0) }
     }
 
     private func generateItinerary() async {
@@ -210,15 +319,9 @@ struct TripEditorView: View {
             tokenProvider: tokenProvider
         )
         let itinerary = await service.generateItinerary(for: trip)
-        draftItinerary = itinerary
+        outputItinerary = itinerary
         isGenerating = false
-    }
-
-    private func binding(for itinerary: Itinerary) -> Binding<Itinerary> {
-        Binding(
-            get: { draftItinerary ?? itinerary },
-            set: { draftItinerary = $0 }
-        )
+        showOutputs = true
     }
 
     private var isUITestMode: Bool {
@@ -227,6 +330,36 @@ struct TripEditorView: View {
 
     private var tokenProvider: TokenProviding {
         isUITestMode ? AnonymousTokenProvider() : authManager
+    }
+}
+
+private struct BreadcrumbBar: View {
+    let steps: [TripWizardStep]
+    let currentStep: TripWizardStep
+    let completedSteps: Set<TripWizardStep>
+    let onSelect: (TripWizardStep) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(steps) { step in
+                    let isCurrent = step == currentStep
+                    let isCompleted = completedSteps.contains(step)
+                    Button {
+                        onSelect(step)
+                    } label: {
+                        Text(step.shortTitle)
+                            .font(.footnote.weight(isCurrent ? .semibold : .regular))
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
+                            .background(isCurrent ? Color.accentColor.opacity(0.15) : Color.clear)
+                            .clipShape(Capsule())
+                    }
+                    .disabled(!isCompleted && !isCurrent)
+                }
+            }
+            .padding(.vertical, 2)
+        }
     }
 }
 
