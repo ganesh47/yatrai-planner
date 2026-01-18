@@ -31,7 +31,8 @@ jobs:
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: worker
           wranglerVersion: "4.59.2"
-          command: deploy --log-level=error
+          command: deploy
+          quiet: true
 
       - name: Smoke test (workers.dev)
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
@@ -72,7 +73,8 @@ jobs:
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: worker
           wranglerVersion: "4.59.2"
-          command: deploy --env preview --log-level=error
+          command: deploy --env preview
+          quiet: true
 
       - name: Smoke test (workers.dev)
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
