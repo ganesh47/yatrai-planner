@@ -116,23 +116,23 @@ struct TripEditorView: View {
                     HStack {
                         Text("Fuel")
                         Spacer()
-                        Text(String(format: \"%.0f\", cost.fuelCost))
+                        Text(String(format: "%.0f", cost.fuelCost))
                     }
                     HStack {
                         Text("Food")
                         Spacer()
-                        Text(String(format: \"%.0f\", cost.foodCost))
+                        Text(String(format: "%.0f", cost.foodCost))
                     }
                     HStack {
                         Text("Lodging")
                         Spacer()
-                        Text(String(format: \"%.0f\", cost.lodgingCost))
+                        Text(String(format: "%.0f", cost.lodgingCost))
                     }
                     HStack {
                         Text("Total")
                             .fontWeight(.semibold)
                         Spacer()
-                        Text(String(format: \"%.0f\", cost.totalCost))
+                        Text(String(format: "%.0f", cost.totalCost))
                             .fontWeight(.semibold)
                     }
                 }
@@ -179,7 +179,7 @@ struct TripEditorView: View {
                 }
 
                 Section("Checklists") {
-                    NavigationLink(\"Edit checklists\") {
+                    NavigationLink("Edit checklists") {
                         ChecklistsView(checklists: $trip.checklists)
                     }
                 }
@@ -204,7 +204,7 @@ struct TripEditorView: View {
 
     private func generateItinerary() async {
         isGenerating = true
-        let backendURL = URL(string: "https://api.yatrai.jugaadgraph.xyz")!
+        let backendURL = URL(string: "https://dev.yatrai.jugaadgraph.xyz")!
         let service = ItineraryService(
             client: NetworkItineraryClient(baseURL: backendURL),
             tokenProvider: tokenProvider

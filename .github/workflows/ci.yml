@@ -66,4 +66,6 @@ jobs:
             -destination "${DESTINATION}" \
             -sdk iphonesimulator \
             -enableCodeCoverage YES \
+            -parallel-testing-enabled NO \
+            -maximum-concurrent-test-simulator-destinations 1 \
             test

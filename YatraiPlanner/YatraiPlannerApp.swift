@@ -10,7 +10,15 @@ import SwiftData
 
 @main
 struct YatraiPlannerApp: App {
-    var sharedModelContainer: ModelContainer = {
+    private static var isRunningTests: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        if environment["XCTestConfigurationFilePath"] != nil {
+            return true
+        }
+        return ProcessInfo.processInfo.arguments.contains("UITEST_MODE")
+    }
+
+    private static func makeModelContainer() -> ModelContainer {
         let schema = Schema([
             Item.self,
         ])
@@ -21,12 +29,24 @@ struct YatraiPlannerApp: App {
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
-    }()
+    }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .modifier(ModelContainerModifier(container: Self.isRunningTests ? nil : Self.makeModelContainer()))
         }
-        .modelContainer(sharedModelContainer)
+    }
+}
+
+private struct ModelContainerModifier: ViewModifier {
+    let container: ModelContainer?
+
+    func body(content: Content) -> some View {
+        if let container {
+            content.modelContainer(container)
+        } else {
+            content
+        }
     }
 }

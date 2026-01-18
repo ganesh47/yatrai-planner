@@ -22,6 +22,23 @@ jobs:
           workingDirectory: worker
           command: deploy
 
+      - name: Smoke test (workers.dev)
+        run: curl -sSf https://yatrai-planner-worker.raman-ganesh.workers.dev/health
+
+      - name: Integration checks (workers.dev)
+        run: |
+          set -e
+          auth_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://yatrai-planner-worker.raman-ganesh.workers.dev/auth/verify)
+          if [ "$auth_status" != "401" ]; then
+            echo "Expected 401 from /auth/verify, got $auth_status"
+            exit 1
+          fi
+          itinerary_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://yatrai-planner-worker.raman-ganesh.workers.dev/itinerary)
+          if [ "$itinerary_status" != "401" ]; then
+            echo "Expected 401 from /itinerary, got $itinerary_status"
+            exit 1
+          fi
+
   deploy-preview:
     if: github.event_name == 'pull_request' && secrets.CLOUDFLARE_API_TOKEN != ''
     runs-on: ubuntu-latest
@@ -36,3 +53,20 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: worker
           command: deploy --env preview
+
+      - name: Smoke test (workers.dev)
+        run: curl -sSf https://yatrai-planner-worker-preview.raman-ganesh.workers.dev/health
+
+      - name: Integration checks (workers.dev)
+        run: |
+          set -e
+          auth_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://yatrai-planner-worker-preview.raman-ganesh.workers.dev/auth/verify)
+          if [ "$auth_status" != "401" ]; then
+            echo "Expected 401 from /auth/verify, got $auth_status"
+            exit 1
+          fi
+          itinerary_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://yatrai-planner-worker-preview.raman-ganesh.workers.dev/itinerary)
+          if [ "$itinerary_status" != "401" ]; then
+            echo "Expected 401 from /itinerary, got $itinerary_status"
+            exit 1
+          fi
