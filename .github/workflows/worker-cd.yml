@@ -17,6 +17,8 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WORKER_URL: https://yatrai-planner-worker.raman-ganesh.workers.dev
+      WRANGLER_LOG_LEVEL: error
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,22 +31,22 @@ jobs:
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: worker
           wranglerVersion: "4.59.2"
-          command: deploy
+          command: deploy --env "" --log-level=error
 
       - name: Smoke test (workers.dev)
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
-        run: curl -sSf https://yatrai-planner-worker.raman-ganesh.workers.dev/health
+        run: curl -sSf "$WORKER_URL/health"
 
       - name: Integration checks (workers.dev)
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
         run: |
           set -e
-          auth_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://yatrai-planner-worker.raman-ganesh.workers.dev/auth/verify)
+          auth_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$WORKER_URL/auth/verify")
           if [ "$auth_status" != "401" ]; then
             echo "Expected 401 from /auth/verify, got $auth_status"
             exit 1
           fi
-          itinerary_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://yatrai-planner-worker.raman-ganesh.workers.dev/itinerary)
+          itinerary_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$WORKER_URL/itinerary")
           if [ "$itinerary_status" != "401" ]; then
             echo "Expected 401 from /itinerary, got $itinerary_status"
             exit 1
@@ -56,6 +58,8 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WORKER_URL: https://yatrai-planner-worker-preview.raman-ganesh.workers.dev
+      WRANGLER_LOG_LEVEL: error
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,22 +72,22 @@ jobs:
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: worker
           wranglerVersion: "4.59.2"
-          command: deploy --env preview
+          command: deploy --env preview --log-level=error
 
       - name: Smoke test (workers.dev)
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
-        run: curl -sSf https://yatrai-planner-worker-preview.raman-ganesh.workers.dev/health
+        run: curl -sSf "$WORKER_URL/health"
 
       - name: Integration checks (workers.dev)
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
         run: |
           set -e
-          auth_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://yatrai-planner-worker-preview.raman-ganesh.workers.dev/auth/verify)
+          auth_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$WORKER_URL/auth/verify")
           if [ "$auth_status" != "401" ]; then
             echo "Expected 401 from /auth/verify, got $auth_status"
             exit 1
           fi
-          itinerary_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://yatrai-planner-worker-preview.raman-ganesh.workers.dev/itinerary)
+          itinerary_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$WORKER_URL/itinerary")
           if [ "$itinerary_status" != "401" ]; then
             echo "Expected 401 from /itinerary, got $itinerary_status"
             exit 1
