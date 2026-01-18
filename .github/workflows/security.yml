@@ -17,7 +17,6 @@ jobs:
   secrets-scan:
     name: Secrets Scan (Gitleaks)
     runs-on: ubuntu-latest
-    if: ${{ secrets.GITLEAKS_LICENSE != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
