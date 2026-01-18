@@ -1,0 +1,154 @@
+name: App Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "SemVer bump type"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+      version:
+        description: "Explicit version (overrides release_type)"
+        required: false
+        type: string
+      dry_run:
+        description: "Compute release without pushing tags or releases"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[release]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine version and notes
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          last_tag="$(git tag --list 'v*' --sort=version:refname | tail -n 1)"
+          if [ -z "$last_tag" ]; then
+            last_tag="v0.0.0"
+          fi
+          base_version="${last_tag#v}"
+          new_version="$(BASE_VERSION="$base_version" python3 - <<'PY'
+          import os
+          def bump(base, release_type):
+              major, minor, patch = [int(x) for x in base.split(".")]
+              if release_type == "major":
+                  major += 1
+                  minor = 0
+                  patch = 0
+              elif release_type == "minor":
+                  minor += 1
+                  patch = 0
+              else:
+                  patch += 1
+              return f"{major}.{minor}.{patch}"
+          base = os.environ["BASE_VERSION"]
+          override = os.environ.get("INPUT_VERSION") or ""
+          release_type = os.environ.get("RELEASE_TYPE") or "patch"
+          print(override if override else bump(base, release_type))
+          PY
+          )"
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$new_version" >> "$GITHUB_OUTPUT"
+          echo "last_tag=$last_tag" >> "$GITHUB_OUTPUT"
+          if git rev-parse "$last_tag" >/dev/null 2>&1; then
+            range="$last_tag..HEAD"
+          else
+            range="HEAD"
+          fi
+          notes="$(git log "$range" --pretty=format:'- %s (%h)')"
+          if [ -z "$notes" ]; then
+            notes="- No user-facing changes."
+          fi
+          printf "%s\n" "$notes" > release_notes.md
+
+      - name: Update changelog and versions
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from datetime import date
+          from pathlib import Path
+          import os
+          import re
+          version = os.environ["VERSION"]
+          build_number = os.environ["BUILD_NUMBER"]
+          notes = Path("release_notes.md").read_text().strip()
+          entry = f"## v{version} - {date.today().isoformat()}\n{notes}\n\n"
+          changelog = Path("CHANGELOG.md")
+          if changelog.exists():
+              content = changelog.read_text()
+              if content.startswith("#"):
+                  parts = content.split("\n", 2)
+                  if len(parts) == 1:
+                      content = parts[0] + "\n\n" + entry
+                  elif len(parts) == 2:
+                      content = parts[0] + "\n\n" + entry
+                  else:
+                      content = parts[0] + "\n" + parts[1] + "\n\n" + entry + parts[2]
+              else:
+                  content = "# Changelog\n\n" + entry + content
+          else:
+              content = "# Changelog\n\n" + entry
+          changelog.write_text(content)
+          project = Path("YatraiPlanner.xcodeproj/project.pbxproj")
+          text = project.read_text()
+          text = re.sub(r"MARKETING_VERSION = [^;]+;", f"MARKETING_VERSION = {version};", text)
+          text = re.sub(r"CURRENT_PROJECT_VERSION = [^;]+;", f"CURRENT_PROJECT_VERSION = {build_number};", text)
+          project.write_text(text)
+          PY
+
+      - name: Commit release changes
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          set -euo pipefail
+          git add CHANGELOG.md YatraiPlanner.xcodeproj/project.pbxproj
+          git commit -m "chore(release): v${{ steps.version.outputs.version }}"
+
+      - name: Tag release
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          set -euo pipefail
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin HEAD:main --tags
+
+      - name: Create GitHub release
+        if: ${{ inputs.dry_run != true }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --notes-file release_notes.md
