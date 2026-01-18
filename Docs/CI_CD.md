@@ -30,8 +30,9 @@
   - wrangler secret put APPLE_AUDIENCE
 
 ## Base URLs
-- Dev: `https://dev.yatrai.jugaadgraph.xyz`
-- Prod: `https://api.yatrai.jugaadgraph.xyz`
+- Dev: `https://yatrai-planner-worker-preview.raman-ganesh.workers.dev`
+- Prod: `https://yatrai-planner-worker.raman-ganesh.workers.dev`
+  - Custom domains pending TLS issuance.
 ## Local environment
 - Copy `.env.local.template` to `.env.local` and fill values.
 - `.env.local` is ignored by git.
