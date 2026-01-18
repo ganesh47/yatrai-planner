@@ -33,6 +33,7 @@ struct ItineraryDraftView: View {
                 }
             }
             MapPreviewView(query: locationQuery(for: day))
+                .accessibilityIdentifier("map-preview-\(dayIndex)")
             tableHeader
             ForEach(day.items.indices, id: \.self) { itemIndex in
                 tableRow(

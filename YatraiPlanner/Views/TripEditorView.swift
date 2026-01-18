@@ -355,6 +355,7 @@ private struct BreadcrumbBar: View {
                             .background(isCurrent ? Color.accentColor.opacity(0.15) : Color.clear)
                             .clipShape(Capsule())
                     }
+                    .accessibilityIdentifier("breadcrumb-\(step.shortTitle)")
                     .disabled(!isCompleted && !isCurrent)
                 }
             }
