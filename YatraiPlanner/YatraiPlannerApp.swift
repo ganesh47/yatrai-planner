@@ -18,11 +18,23 @@ struct YatraiPlannerApp: App {
         return ProcessInfo.processInfo.arguments.contains("UITEST_MODE")
     }
 
+    private static var shouldDisableCloudKit: Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return FileManager.default.ubiquityIdentityToken == nil
+        #endif
+    }
+
     private static func makeModelContainer() -> ModelContainer {
         let schema = Schema([
             Item.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: shouldDisableCloudKit ? .none : .automatic
+        )
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
