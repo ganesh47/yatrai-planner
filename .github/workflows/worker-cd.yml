@@ -24,6 +24,7 @@ jobs:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: worker
+          wranglerVersion: "4.59.2"
           command: deploy
 
       - name: Smoke test (workers.dev)
@@ -62,6 +63,7 @@ jobs:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: worker
+          wranglerVersion: "4.59.2"
           command: deploy --env preview
 
       - name: Smoke test (workers.dev)
