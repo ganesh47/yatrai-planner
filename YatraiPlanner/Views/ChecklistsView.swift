@@ -5,9 +5,9 @@ struct ChecklistsView: View {
 
     var body: some View {
         List {
-            ForEach($checklists) { $checklist in
+            SwiftUI.ForEach($checklists) { $checklist in
                 Section(checklist.title) {
-                    ForEach($checklist.items) { $item in
+                    SwiftUI.ForEach($checklist.items) { $item in
                         HStack {
                             Button {
                                 item.isDone.toggle()
