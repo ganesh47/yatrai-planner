@@ -4,11 +4,11 @@ struct ChecklistsView: View {
     @Binding var checklists: [Checklist]
 
     var body: some View {
-        List {
-            ForEach(checklists.indices, id: \.self) { checklistIndex in
+        SwiftUI.List {
+            SwiftUI.ForEach(checklists.indices, id: \.self) { checklistIndex in
                 let checklist = checklists[checklistIndex]
-                Section(checklist.title) {
-                    ForEach(checklist.items.indices, id: \.self) { itemIndex in
+                SwiftUI.Section(checklist.title) {
+                    SwiftUI.ForEach(checklist.items.indices, id: \.self) { itemIndex in
                         let isDone = Binding(
                             get: { checklists[checklistIndex].items[itemIndex].isDone },
                             set: { checklists[checklistIndex].items[itemIndex].isDone = $0 }
