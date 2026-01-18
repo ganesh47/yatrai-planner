@@ -18,7 +18,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       WORKER_URL: https://yatrai-planner-worker.raman-ganesh.workers.dev
-      WRANGLER_LOG_LEVEL: error
+      WRANGLER_LOG_LEVEL: ERROR
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,7 +59,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       WORKER_URL: https://yatrai-planner-worker-preview.raman-ganesh.workers.dev
-      WRANGLER_LOG_LEVEL: error
+      WRANGLER_LOG_LEVEL: ERROR
     steps:
       - name: Checkout
         uses: actions/checkout@v4
