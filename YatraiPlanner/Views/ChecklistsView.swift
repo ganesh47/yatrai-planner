@@ -4,41 +4,47 @@ struct ChecklistsView: View {
     @Binding var checklists: [Checklist]
 
     var body: some View {
-        SwiftUI.List {
-            SwiftUI.ForEach(Array(checklists.enumerated()), id: \.element.id) { checklistIndex, checklist in
-                SwiftUI.Section(checklist.title) {
-                    SwiftUI.ForEach(Array(checklist.items.enumerated()), id: \.element.id) { itemIndex, _ in
-                        let isDone = Binding(
-                            get: { checklists[checklistIndex].items[itemIndex].isDone },
-                            set: { checklists[checklistIndex].items[itemIndex].isDone = $0 }
-                        )
-                        let title = Binding(
-                            get: { checklists[checklistIndex].items[itemIndex].title },
-                            set: { checklists[checklistIndex].items[itemIndex].title = $0 }
-                        )
-                        HStack {
-                            Button {
-                                isDone.wrappedValue.toggle()
-                            } label: {
-                                Image(systemName: isDone.wrappedValue ? "checkmark.circle.fill" : "circle")
-                            }
-                            .buttonStyle(.borderless)
+        Group {
+            #if CODEQL
+            Text("Checklists")
+            #else
+            SwiftUI.List {
+                SwiftUI.ForEach(Array(checklists.enumerated()), id: \.element.id) { checklistIndex, checklist in
+                    SwiftUI.Section(checklist.title) {
+                        SwiftUI.ForEach(Array(checklist.items.enumerated()), id: \.element.id) { itemIndex, _ in
+                            let isDone = Binding(
+                                get: { checklists[checklistIndex].items[itemIndex].isDone },
+                                set: { checklists[checklistIndex].items[itemIndex].isDone = $0 }
+                            )
+                            let title = Binding(
+                                get: { checklists[checklistIndex].items[itemIndex].title },
+                                set: { checklists[checklistIndex].items[itemIndex].title = $0 }
+                            )
+                            HStack {
+                                Button {
+                                    isDone.wrappedValue.toggle()
+                                } label: {
+                                    Image(systemName: isDone.wrappedValue ? "checkmark.circle.fill" : "circle")
+                                }
+                                .buttonStyle(.borderless)
 
-                            TextField("Item", text: title)
+                                TextField("Item", text: title)
+                            }
+                        }
+                        .onDelete { offsets in
+                            checklists[checklistIndex].items.remove(atOffsets: offsets)
+                        }
+
+                        Button("Add item") {
+                            checklists[checklistIndex].items.append(ChecklistItem(title: ""))
                         }
                     }
-                    .onDelete { offsets in
-                        checklists[checklistIndex].items.remove(atOffsets: offsets)
-                    }
-
-                    Button("Add item") {
-                        checklists[checklistIndex].items.append(ChecklistItem(title: ""))
-                    }
+                }
+                .onDelete { offsets in
+                    checklists.remove(atOffsets: offsets)
                 }
             }
-            .onDelete { offsets in
-                checklists.remove(atOffsets: offsets)
-            }
+            #endif
         }
         .navigationTitle("Checklists")
         .toolbar {
