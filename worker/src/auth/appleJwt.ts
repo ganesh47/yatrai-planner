@@ -1,10 +1,16 @@
-import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyOptions } from "jose";
+import {
+  createRemoteJWKSet,
+  jwtVerify,
+  type JWTPayload,
+  type JWTVerifyGetKey,
+  type JWTVerifyOptions
+} from "jose";
 
 export interface AppleJwtConfig {
   audience: string;
   issuer: string;
   jwksUrl?: string;
-  jwksOverride?: ReturnType<typeof createRemoteJWKSet>;
+  jwksOverride?: JWTVerifyGetKey;
 }
 
 export async function verifyAppleIdentityToken(
