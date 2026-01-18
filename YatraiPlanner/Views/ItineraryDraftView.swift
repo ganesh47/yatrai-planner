@@ -115,7 +115,7 @@ struct ItineraryDraftView: View {
                 return query
             }
         }
-        return day.title
+        return nil
     }
 
     private func stripPrefix(from value: String, prefix: String) -> String? {
