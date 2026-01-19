@@ -64,9 +64,11 @@ struct ItineraryService {
         do {
             let token = try await tokenProvider.fetchToken()
             let response = try await client.fetchDraft(trip: trip, token: token)
-            return mapDraft(response.draft, tripId: trip.id)
+            let itinerary = mapDraft(response.draft, tripId: trip.id)
+            return sanitize(itinerary, trip: trip)
         } catch {
-            return planner.generate(trip: trip)
+            let itinerary = planner.generate(trip: trip)
+            return sanitize(itinerary, trip: trip)
         }
     }
 
@@ -86,6 +88,40 @@ struct ItineraryService {
             source: .aiDraft,
             days: days,
             lastUpdated: Date()
+        )
+    }
+
+    private func sanitize(_ itinerary: Itinerary, trip: TripInput) -> Itinerary {
+        let filteredDays = itinerary.days.filter { day in
+            day.items.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        }
+
+        if filteredDays.isEmpty {
+            let items = [
+                "Start: \(trip.startCity)",
+                "End: \(trip.endCity)"
+            ]
+            let fallbackDay = ItineraryDay(
+                date: trip.startDate,
+                title: "Day 1",
+                items: items,
+                estimatedKm: trip.drivingConstraints.maxKmPerDay
+            )
+            return Itinerary(
+                id: itinerary.id,
+                tripId: itinerary.tripId,
+                source: itinerary.source,
+                days: [fallbackDay],
+                lastUpdated: itinerary.lastUpdated
+            )
+        }
+
+        return Itinerary(
+            id: itinerary.id,
+            tripId: itinerary.tripId,
+            source: itinerary.source,
+            days: filteredDays,
+            lastUpdated: itinerary.lastUpdated
         )
     }
 }

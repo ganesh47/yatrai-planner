@@ -32,7 +32,8 @@ struct ItineraryDraftView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            MapPreviewView(query: locationQuery(for: day))
+            let route = routeQueries(for: day)
+            MapPreviewView(startQuery: route.start, endQuery: route.end)
                 .accessibilityIdentifier("map-preview-\(dayIndex)")
             tableHeader
             ForEach(day.items.indices, id: \.self) { itemIndex in
@@ -104,19 +105,20 @@ struct ItineraryDraftView: View {
         return trimmed.hasPrefix("Start:") || trimmed.hasPrefix("End:")
     }
 
-    private func locationQuery(for day: ItineraryDay) -> String? {
-        for item in day.items {
-            if let query = stripPrefix(from: item, prefix: "Milestone:") {
-                return query
-            }
-            if let query = stripPrefix(from: item, prefix: "Start:") {
-                return query
-            }
-            if let query = stripPrefix(from: item, prefix: "End:") {
-                return query
-            }
+    private func routeQueries(for day: ItineraryDay) -> (start: String?, end: String?) {
+        let queries = day.items.compactMap { item in
+            stripPrefix(from: item, prefix: "Start:")
+                ?? stripPrefix(from: item, prefix: "Milestone:")
+                ?? stripPrefix(from: item, prefix: "End:")
         }
-        return nil
+        guard let first = queries.first else {
+            return (nil, nil)
+        }
+        let last = queries.last
+        if first == last {
+            return (first, nil)
+        }
+        return (first, last)
     }
 
     private func stripPrefix(from value: String, prefix: String) -> String? {
