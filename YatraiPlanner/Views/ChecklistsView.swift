@@ -1,10 +1,10 @@
 import SwiftUI
 
+#if CODEQL
 struct ChecklistsView: View {
     @Binding var checklists: [Checklist]
 
     var body: some View {
-        #if CODEQL
         Text("Checklists")
             .navigationTitle("Checklists")
             .toolbar {
@@ -12,7 +12,13 @@ struct ChecklistsView: View {
                     checklists.append(Checklist(title: "New checklist", items: []))
                 }
             }
-        #else
+    }
+}
+#else
+struct ChecklistsView: View {
+    @Binding var checklists: [Checklist]
+
+    var body: some View {
         List {
             ForEach(checklists.indices, id: \.self) { checklistIndex in
                 Section(checklists[checklistIndex].title) {
@@ -38,7 +44,6 @@ struct ChecklistsView: View {
                 checklists.append(Checklist(title: "New checklist", items: []))
             }
         }
-        #endif
     }
 
     private func bindingForItem(checklistIndex: Int, itemIndex: Int) -> Binding<ChecklistItem> {
@@ -49,7 +54,6 @@ struct ChecklistsView: View {
     }
 }
 
-#if !CODEQL
 private struct ChecklistItemRow: View {
     @Binding var item: ChecklistItem
 
