@@ -4,30 +4,33 @@ struct ChecklistsView: View {
     @Binding var checklists: [Checklist]
 
     var body: some View {
-        Group {
-            #if CODEQL
-            Text("Checklists")
-            #else
-            List {
-                ForEach(checklists.indices, id: \.self) { checklistIndex in
-                    Section(checklists[checklistIndex].title) {
-                        ForEach(checklists[checklistIndex].items.indices, id: \.self) { itemIndex in
-                            ChecklistItemRow(item: bindingForItem(checklistIndex: checklistIndex, itemIndex: itemIndex))
-                        }
-                        .onDelete { offsets in
-                            checklists[checklistIndex].items.remove(atOffsets: offsets)
-                        }
-
-                        Button("Add item") {
-                            checklists[checklistIndex].items.append(ChecklistItem(title: ""))
-                        }
-                    }
-                }
-                .onDelete { offsets in
-                    checklists.remove(atOffsets: offsets)
+        #if CODEQL
+        Text("Checklists")
+            .navigationTitle("Checklists")
+            .toolbar {
+                Button("Add checklist") {
+                    checklists.append(Checklist(title: "New checklist", items: []))
                 }
             }
-            #endif
+        #else
+        List {
+            ForEach(checklists.indices, id: \.self) { checklistIndex in
+                Section(checklists[checklistIndex].title) {
+                    ForEach(checklists[checklistIndex].items.indices, id: \.self) { itemIndex in
+                        ChecklistItemRow(item: bindingForItem(checklistIndex: checklistIndex, itemIndex: itemIndex))
+                    }
+                    .onDelete { offsets in
+                        checklists[checklistIndex].items.remove(atOffsets: offsets)
+                    }
+
+                    Button("Add item") {
+                        checklists[checklistIndex].items.append(ChecklistItem(title: ""))
+                    }
+                }
+            }
+            .onDelete { offsets in
+                checklists.remove(atOffsets: offsets)
+            }
         }
         .navigationTitle("Checklists")
         .toolbar {
@@ -35,6 +38,7 @@ struct ChecklistsView: View {
                 checklists.append(Checklist(title: "New checklist", items: []))
             }
         }
+        #endif
     }
 
     private func bindingForItem(checklistIndex: Int, itemIndex: Int) -> Binding<ChecklistItem> {
