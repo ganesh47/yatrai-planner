@@ -122,6 +122,11 @@ struct TripEditorView: View {
                         }
                     }
                     .frame(height: 44)
+                    if shouldShowSignInHint {
+                        Text("Sign in with Apple may fail on Simulator without iCloud. Open Settings → Apple ID to sign in, or use a real device.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         case .dates:
@@ -326,6 +331,14 @@ struct TripEditorView: View {
 
     private var isUITestMode: Bool {
         ProcessInfo.processInfo.arguments.contains("UITEST_MODE")
+    }
+
+    private var shouldShowSignInHint: Bool {
+        #if targetEnvironment(simulator)
+        return FileManager.default.ubiquityIdentityToken == nil
+        #else
+        return false
+        #endif
     }
 
     private var tokenProvider: TokenProviding {
