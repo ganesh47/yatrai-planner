@@ -9,26 +9,17 @@ struct ChecklistsView: View {
             Text("Checklists")
             #else
             List {
-                ForEach($checklists) { $checklist in
-                    Section(checklist.title) {
-                        ForEach($checklist.items) { $item in
-                            HStack {
-                                Button {
-                                    item.isDone.toggle()
-                                } label: {
-                                    Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
-                                }
-                                .buttonStyle(.borderless)
-
-                                TextField("Item", text: $item.title)
-                            }
+                ForEach(checklists.indices, id: \.self) { checklistIndex in
+                    Section(checklists[checklistIndex].title) {
+                        ForEach(checklists[checklistIndex].items.indices, id: \.self) { itemIndex in
+                            ChecklistItemRow(item: bindingForItem(checklistIndex: checklistIndex, itemIndex: itemIndex))
                         }
                         .onDelete { offsets in
-                            checklist.items.remove(atOffsets: offsets)
+                            checklists[checklistIndex].items.remove(atOffsets: offsets)
                         }
 
                         Button("Add item") {
-                            checklist.items.append(ChecklistItem(title: ""))
+                            checklists[checklistIndex].items.append(ChecklistItem(title: ""))
                         }
                     }
                 }
@@ -45,7 +36,33 @@ struct ChecklistsView: View {
             }
         }
     }
+
+    private func bindingForItem(checklistIndex: Int, itemIndex: Int) -> Binding<ChecklistItem> {
+        Binding(
+            get: { checklists[checklistIndex].items[itemIndex] },
+            set: { checklists[checklistIndex].items[itemIndex] = $0 }
+        )
+    }
 }
+
+#if !CODEQL
+private struct ChecklistItemRow: View {
+    @Binding var item: ChecklistItem
+
+    var body: some View {
+        HStack {
+            Button {
+                item.isDone.toggle()
+            } label: {
+                Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
+            }
+            .buttonStyle(.borderless)
+
+            TextField("Item", text: $item.title)
+        }
+    }
+}
+#endif
 
 #Preview {
     ChecklistsView(checklists: .constant(TripInput.sample.checklists))
