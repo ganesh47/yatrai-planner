@@ -19,10 +19,10 @@ struct ChecklistsView: View {
     @Binding var checklists: [Checklist]
 
     var body: some View {
-        List {
-            ForEach(checklists.indices, id: \.self) { checklistIndex in
-                Section(checklists[checklistIndex].title) {
-                    ForEach($checklists[checklistIndex].items) { $item in
+        SwiftUI.List {
+            SwiftUI.ForEach(checklists.indices, id: \.self) { checklistIndex in
+                SwiftUI.Section(checklists[checklistIndex].title) {
+                    SwiftUI.ForEach($checklists[checklistIndex].items) { $item in
                         ChecklistItemRow(item: $item)
                     }
                     .onDelete { offsets in
