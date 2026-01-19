@@ -22,8 +22,8 @@ struct ChecklistsView: View {
         List {
             ForEach(checklists.indices, id: \.self) { checklistIndex in
                 Section(checklists[checklistIndex].title) {
-                    ForEach(checklists[checklistIndex].items.indices, id: \.self) { itemIndex in
-                        ChecklistItemRow(item: bindingForItem(checklistIndex: checklistIndex, itemIndex: itemIndex))
+                    ForEach($checklists[checklistIndex].items) { $item in
+                        ChecklistItemRow(item: $item)
                     }
                     .onDelete { offsets in
                         checklists[checklistIndex].items.remove(atOffsets: offsets)
@@ -46,12 +46,6 @@ struct ChecklistsView: View {
         }
     }
 
-    private func bindingForItem(checklistIndex: Int, itemIndex: Int) -> Binding<ChecklistItem> {
-        Binding(
-            get: { checklists[checklistIndex].items[itemIndex] },
-            set: { checklists[checklistIndex].items[itemIndex] = $0 }
-        )
-    }
 }
 
 private struct ChecklistItemRow: View {
