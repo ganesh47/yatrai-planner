@@ -113,12 +113,38 @@ struct TripEditorView: View {
 
             Section("Account") {
                 Toggle("Pro features enabled", isOn: $trip.isProUser)
+                if let profile = authManager.profile {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(profile.displayName ?? "Signed in")
+                            .font(.headline)
+                        if let email = profile.email {
+                            Text(email)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        if let role = profile.role {
+                            Text("Role: \(role.capitalized)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                if let error = authManager.lastError {
+                    Text(error)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
                 if !isUITestMode {
                     SignInWithAppleButton(.signIn) { request in
                         request.requestedScopes = [.fullName, .email]
                     } onCompletion: { _ in
                         Task {
-                            try? await authManager.signIn()
+                            do {
+                                try await authManager.signIn()
+                                trip.isProUser = true
+                            } catch {
+                                // Error already surfaced from auth manager.
+                            }
                         }
                     }
                     .frame(height: 44)
@@ -318,9 +344,8 @@ struct TripEditorView: View {
 
     private func generateItinerary() async {
         isGenerating = true
-        let backendURL = URL(string: "https://yatrai-planner-worker-preview.raman-ganesh.workers.dev")!
         let service = ItineraryService(
-            client: NetworkItineraryClient(baseURL: backendURL),
+            client: NetworkItineraryClient(baseURL: AppConfig.workerBaseURL),
             tokenProvider: tokenProvider
         )
         let itinerary = await service.generateItinerary(for: trip)

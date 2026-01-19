@@ -13,3 +13,13 @@ export async function getRole(kv: KVNamespaceLike, userId: string): Promise<Role
 export async function setRole(kv: KVNamespaceLike, userId: string, role: Role): Promise<void> {
   await kv.put(`${ROLE_PREFIX}:${userId}`, role);
 }
+
+export async function ensureProRole(kv: KVNamespaceLike, userId: string): Promise<Role> {
+  const key = `${ROLE_PREFIX}:${userId}`;
+  const current = await kv.get(key);
+  if (current === "admin" || current === "pro") {
+    return current;
+  }
+  await kv.put(key, "pro");
+  return "pro";
+}
