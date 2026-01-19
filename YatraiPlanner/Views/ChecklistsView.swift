@@ -8,35 +8,27 @@ struct ChecklistsView: View {
             #if CODEQL
             Text("Checklists")
             #else
-            SwiftUI.List {
-                SwiftUI.ForEach(Array(checklists.enumerated()), id: \.element.id) { checklistIndex, checklist in
-                    SwiftUI.Section(checklist.title) {
-                        SwiftUI.ForEach(Array(checklist.items.enumerated()), id: \.element.id) { itemIndex, _ in
-                            let isDone = Binding(
-                                get: { checklists[checklistIndex].items[itemIndex].isDone },
-                                set: { checklists[checklistIndex].items[itemIndex].isDone = $0 }
-                            )
-                            let title = Binding(
-                                get: { checklists[checklistIndex].items[itemIndex].title },
-                                set: { checklists[checklistIndex].items[itemIndex].title = $0 }
-                            )
+            List {
+                ForEach($checklists) { $checklist in
+                    Section(checklist.title) {
+                        ForEach($checklist.items) { $item in
                             HStack {
                                 Button {
-                                    isDone.wrappedValue.toggle()
+                                    item.isDone.toggle()
                                 } label: {
-                                    Image(systemName: isDone.wrappedValue ? "checkmark.circle.fill" : "circle")
+                                    Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
                                 }
                                 .buttonStyle(.borderless)
 
-                                TextField("Item", text: title)
+                                TextField("Item", text: $item.title)
                             }
                         }
                         .onDelete { offsets in
-                            checklists[checklistIndex].items.remove(atOffsets: offsets)
+                            checklist.items.remove(atOffsets: offsets)
                         }
 
                         Button("Add item") {
-                            checklists[checklistIndex].items.append(ChecklistItem(title: ""))
+                            checklist.items.append(ChecklistItem(title: ""))
                         }
                     }
                 }
