@@ -79,6 +79,12 @@ final class AppleAuthManager: NSObject, ObservableObject, TokenProviding {
         lastError = error.localizedDescription
     }
 
+    func signOut() {
+        currentToken = nil
+        profile = nil
+        lastError = nil
+    }
+
     private func registerUser(token: String, fullName: PersonNameComponents?, email: String?) async throws {
         let url = baseURL.appendingPathComponent("auth/verify")
         var request = URLRequest(url: url)

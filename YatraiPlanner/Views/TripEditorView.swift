@@ -117,6 +117,9 @@ struct TripEditorView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(profile.displayName ?? "Signed in")
                             .font(.headline)
+                        Text("ID: \(profile.userId)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         if let email = profile.email {
                             Text(email)
                                 .font(.subheadline)
@@ -127,6 +130,10 @@ struct TripEditorView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                    }
+                    Button("Log out") {
+                        authManager.signOut()
+                        trip.isProUser = false
                     }
                 }
                 if let error = authManager.lastError {
