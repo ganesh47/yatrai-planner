@@ -2,7 +2,7 @@ import { verifyAppleIdentityToken } from "./auth/appleJwt.js";
 import { handleAdminSetRole } from "./handlers/admin.js";
 import { handleItineraryRequest } from "./handlers/itinerary.js";
 import { createOpenAIClient } from "./openai/client.js";
-import { ensureProRole } from "./rbac/roles.js";
+import { ensureProRole, isAllowlisted } from "./rbac/roles.js";
 import type { KVNamespaceLike } from "./types.js";
 
 export interface Env {
@@ -64,6 +64,9 @@ async function handleAuthVerify(request: Request, env: Env): Promise<Response> {
     const payload = await verifyAppleIdentityToken(token, { audience, issuer });
     if (!payload.sub) {
       return json({ error: "missing_sub" }, 401);
+    }
+    if (!(await isAllowlisted(env.RBAC_KV, payload.sub))) {
+      return json({ error: "not_allowlisted" }, 403);
     }
     const role = await ensureProRole(env.RBAC_KV, payload.sub);
     return json({ sub: payload.sub, email: payload.email ?? null, role }, 200);

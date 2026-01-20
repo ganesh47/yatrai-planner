@@ -3,7 +3,7 @@ import type { KVNamespaceLike, Role } from "../types.js";
 import { validateItineraryRequest } from "../validation/itinerary.js";
 import type { OpenAIClient } from "../openai/client.js";
 import { consumeItineraryQuota } from "../limits/quotas.js";
-import { getRole } from "../rbac/roles.js";
+import { getRole, isAllowlisted } from "../rbac/roles.js";
 
 export interface ItineraryHandlerDeps {
   kv: KVNamespaceLike;
@@ -28,6 +28,10 @@ export async function handleItineraryRequest(request: Request, deps: ItineraryHa
   const userId = payload.sub;
   if (!userId) {
     return json({ error: "invalid_token" }, 401);
+  }
+
+  if (!(await isAllowlisted(deps.kv, userId))) {
+    return json({ error: "not_allowlisted" }, 403);
   }
 
   const role: Role = await getRole(deps.kv, userId);

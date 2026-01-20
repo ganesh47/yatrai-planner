@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { handleItineraryRequest } from "../src/handlers/itinerary.js";
 import { MemoryKV } from "./helpers/memoryKv.js";
+import { setAllowlistEntry } from "../src/rbac/roles.js";
 
 const validBody = {
   startCity: "Chennai",
@@ -23,6 +24,7 @@ function makeRequest(body: unknown, token = "token") {
 describe("handleItineraryRequest", () => {
   it("returns 401 on missing token", async () => {
     const kv = new MemoryKV();
+    await setAllowlistEntry(kv, "user-1");
     const request = new Request("https://example.com/itinerary", { method: "POST" });
     const response = await handleItineraryRequest(request, {
       kv,
@@ -35,6 +37,7 @@ describe("handleItineraryRequest", () => {
 
   it("rejects invalid payload", async () => {
     const kv = new MemoryKV();
+    await setAllowlistEntry(kv, "user-1");
     const response = await handleItineraryRequest(makeRequest({ startCity: "" }), {
       kv,
       verifyToken: async () => ({ sub: "user-1" }),
@@ -46,6 +49,7 @@ describe("handleItineraryRequest", () => {
 
   it("enforces free quota", async () => {
     const kv = new MemoryKV();
+    await setAllowlistEntry(kv, "user-1");
     const deps = {
       kv,
       verifyToken: async () => ({ sub: "user-1" }),
@@ -61,6 +65,7 @@ describe("handleItineraryRequest", () => {
 
   it("returns draft on success", async () => {
     const kv = new MemoryKV();
+    await setAllowlistEntry(kv, "user-1");
     const response = await handleItineraryRequest(makeRequest(validBody), {
       kv,
       verifyToken: async () => ({ sub: "user-1" }),
@@ -70,5 +75,16 @@ describe("handleItineraryRequest", () => {
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload.draft).toBeTruthy();
+  });
+
+  it("rejects non-allowlisted users", async () => {
+    const kv = new MemoryKV();
+    const response = await handleItineraryRequest(makeRequest(validBody), {
+      kv,
+      verifyToken: async () => ({ sub: "user-1" }),
+      openaiClient: { createItinerary: async () => ({ draft: true }) }
+    });
+
+    expect(response.status).toBe(403);
   });
 });
