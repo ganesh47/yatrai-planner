@@ -134,14 +134,19 @@ struct TripEditorView: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                 }
-                if !isUITestMode {
+                if !isUITestMode, authManager.profile == nil {
                     SignInWithAppleButton(.signIn) { request in
                         request.requestedScopes = [.fullName, .email]
-                    } onCompletion: { _ in
+                    } onCompletion: { result in
                         Task {
                             do {
-                                try await authManager.signIn()
-                                trip.isProUser = true
+                                switch result {
+                                case .success(let authorization):
+                                    try await authManager.handleAuthorization(authorization)
+                                    trip.isProUser = true
+                                case .failure(let error):
+                                    authManager.handleAuthorizationError(error)
+                                }
                             } catch {
                                 // Error already surfaced from auth manager.
                             }

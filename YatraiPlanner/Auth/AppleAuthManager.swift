@@ -64,6 +64,21 @@ final class AppleAuthManager: NSObject, ObservableObject, TokenProviding {
         }
     }
 
+    func handleAuthorization(_ authorization: ASAuthorization) async throws {
+        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+              let tokenData = credential.identityToken,
+              let tokenString = String(data: tokenData, encoding: .utf8) else {
+            lastError = TokenError.missingToken.localizedDescription
+            throw TokenError.missingToken
+        }
+        currentToken = tokenString
+        try await registerUser(token: tokenString, fullName: credential.fullName, email: credential.email)
+    }
+
+    func handleAuthorizationError(_ error: Error) {
+        lastError = error.localizedDescription
+    }
+
     private func registerUser(token: String, fullName: PersonNameComponents?, email: String?) async throws {
         let url = baseURL.appendingPathComponent("auth/verify")
         var request = URLRequest(url: url)
